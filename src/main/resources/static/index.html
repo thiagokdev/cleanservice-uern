@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema CleanService - UERN</title>
+    <style>
+        /* Estilo Visual (CSS) - Deixa a página bonita */
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        /* Estilo do Formulário */
+        .card { background: #eef2f3; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        label { font-weight: bold; display: block; margin-top: 10px; }
+        input { width: 95%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+        
+        /* Botões */
+        button { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px;}
+        button:hover { background-color: #218838; }
+        .btn-refresh { background-color: #007bff; width: auto; padding: 8px 15px; float: right; margin-top: 0; }
+
+        /* Tabela */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Gestão de Ordens de Serviço - CleanService</h1>
+
+        <div class="card">
+            <h3>Nova Solicitação</h3>
+            
+            <label>Nome do Cliente:</label>
+            <input type="text" id="cliente" placeholder="Ex: Maria Souza">
+            
+            <label>Descrição do Serviço:</label>
+            <input type="text" id="servico" placeholder="Ex: Limpeza de Ar Condicionado">
+            
+            <label>Valor (R$):</label>
+            <input type="number" id="valor" placeholder="0.00">
+            
+            <button onclick="salvarOS()">CADASTRAR OS</button>
+        </div>
+
+        <div style="overflow: hidden; margin-bottom: 10px;">
+            <h3 style="float: left; margin: 0;">Relatório de Serviços</h3>
+            <button class="btn-refresh" onclick="carregarRelatorio()">Atualizar Tabela</button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Serviço</th>
+                    <th>Valor</th>
+                    <th>Data Abertura</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaCorpo">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Endereço do seu Back-end Java (Porta 8081)
+        const API_URL = 'http://localhost:8081/api/os';
+
+        // Função 1: CADASTRAR (Envia dados do HTML para o Java)
+        async function salvarOS() {
+            const nomeCliente = document.getElementById('cliente').value;
+            const descricaoServico = document.getElementById('servico').value;
+            const valor = document.getElementById('valor').value;
+
+            // Validação simples
+            if(!nomeCliente || !descricaoServico || !valor) {
+                alert("Por favor, preencha todos os campos!");
+                return;
+            }
+
+            const dados = {
+                nomeCliente: nomeCliente,
+                descricaoServico: descricaoServico,
+                valor: parseFloat(valor)
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                if (response.ok) {
+                    alert("✅ Ordem de Serviço Salva com Sucesso!");
+                    // Limpar os campos
+                    document.getElementById('cliente').value = '';
+                    document.getElementById('servico').value = '';
+                    document.getElementById('valor').value = '';
+                    // Atualizar a tabela
+                    carregarRelatorio();
+                } else {
+                    alert("Erro ao salvar. Verifique o Console do Java.");
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert("Erro de conexão com o servidor.");
+            }
+        }
+
+        // Função 2: LISTAR (Busca dados do Java para o HTML)
+        async function carregarRelatorio() {
+            try {
+                const response = await fetch(API_URL);
+                const lista = await response.json();
+                
+                const tabela = document.getElementById('tabelaCorpo');
+                tabela.innerHTML = ''; // Limpa a tabela antes de encher
+
+                lista.forEach(os => {
+                    tabela.innerHTML += `
+                        <tr>
+                            <td>${os.id}</td>
+                            <td>${os.nomeCliente}</td>
+                            <td>${os.descricaoServico}</td>
+                            <td>R$ ${os.valor}</td>
+                            <td>${os.dataAbertura}</td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error('Erro ao carregar:', error);
+            }
+        }
+
+        // Carrega a lista automaticamente ao abrir a página
+        carregarRelatorio();
+    </script>
+
+</body>
+</html>
